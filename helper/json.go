@@ -22,7 +22,6 @@ type Rule struct {
 }
 
 func JsonRead(filename string) []byte {
-	Checkdir(filename)
 	fp, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	defer fp.Close()
 	if err != nil {
@@ -33,7 +32,7 @@ func JsonRead(filename string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(string(data[:n]))
+	//fmt.Println(string(data[:n]))
 	return data[:n]
 }
 

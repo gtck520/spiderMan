@@ -21,7 +21,8 @@ import (
 )
 
 // addCmd represents the add command
-var Name string
+
+var add_name string
 var spider = controller.Spider{}
 var addCmd = &cobra.Command{
 	Use: "add",
@@ -30,7 +31,7 @@ var addCmd = &cobra.Command{
 	Short: "add ...urls",
 	Long:  `添加一个或多个url地址，多个用空格分割，将地址加入到工作队列中，并同时生成这个地址爬虫规则文件。`,
 	Run: func(cmd *cobra.Command, args []string) {
-		spider.Add(cmd, args, Name)
+		spider.Add(cmd, args, add_name)
 	},
 }
 
@@ -55,6 +56,6 @@ func init() {
 	//show = *testCmd.Flags().BoolP("show", "s", false, "show")
 	// 设置使用test的时候后面必须接show
 	//_ = testCmd.MarkFlagRequired("show")
-	addCmd.Flags().StringVarP(&Name, "name", "n", "", "必须为url标记个名称，多个需要一一对应用逗号隔开")
+	addCmd.Flags().StringVarP(&add_name, "name", "n", "", "必须为url标记个名称，多个需要一一对应用逗号隔开")
 	_ = addCmd.MarkFlagRequired("name")
 }
