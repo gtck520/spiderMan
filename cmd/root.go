@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -74,6 +75,7 @@ func initConfig() {
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".spider")
+		viper.SetDefault("SiteconfigDir", "./siteconfig/")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
