@@ -7,20 +7,6 @@ import (
 	"path/filepath"
 )
 
-//定义每个url的配置结构
-type UrlConfig struct {
-	Name  string //配置名称
-	Url   string //url
-	Rules []Rule //规则
-}
-
-//规则结构
-type Rule struct {
-	Name       string //规则名 例如 标题
-	StartLable string //开始位置的标签 例如 <title>
-	EndLable   string //结束位置标签</title>
-}
-
 func JsonRead(filename string) []byte {
 	fp, err := os.OpenFile(filename, os.O_RDONLY, 0755)
 	defer fp.Close()

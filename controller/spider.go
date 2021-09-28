@@ -3,9 +3,6 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/gtck520/spiderMan/helper"
@@ -19,10 +16,6 @@ var spider_service = service.Spider{}
 type Spider struct {
 	UrlList map[string]string
 }
-type Urls struct {
-	Name string
-	Url  string
-}
 
 // 添加一个目标url地址
 func (s *Spider) Add(cmd *cobra.Command, args []string, globals ...string) {
@@ -34,7 +27,7 @@ func (s *Spider) Add(cmd *cobra.Command, args []string, globals ...string) {
 	}
 	configpath := viper.Get("SiteconfigDir")
 	for k, arg := range args {
-		jsonconfig := helper.UrlConfig{}
+		jsonconfig := service.UrlConfig{}
 		jsonconfig.Name = names[k]
 		jsonconfig.Url = arg
 		filename := names[k] + ".json"
@@ -54,30 +47,20 @@ func (s *Spider) List(cmd *cobra.Command, args []string, globals ...string) {
 			fmt.Println(err.Error())
 		}
 	} else {
-		configpath := viper.Get("SiteconfigDir")
-		urls := []Urls{}
-		err := filepath.Walk(configpath.(string),
-			func(files string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				_, fileName := filepath.Split(files)
-				ext := path.Ext(files)
-				name := strings.Replace(fileName, ext, "", -1)
-				url_config, err := spider_service.GetUrlconfig(name)
-				if err == nil {
-					url := Urls{name, url_config.Url}
-					urls = append(urls, url)
-				}
-				//fmt.Println(path, info.Size())
-				return nil
-			})
-		t := helper.Table(urls)
-		fmt.Println(t)
+		urls, err := spider_service.ScanAll()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 		//fmt.Println("列出所有目录")
+		t := helper.Table(urls)
+		fmt.Println(t)
 	}
 
+}
+func (s *Spider) SpiderRun(cmd *cobra.Command, args []string, globals ...string) {
+	var name = ""
+	if len(globals) > 0 && globals[0] != "" {
+		name = globals[0]
+	}
+	spider_service.SpiderRun(name)
 }
