@@ -81,20 +81,57 @@ func (s *Spider) AddUrlrule(name string, rule Rule) {
 
 }
 
+//根据名称参数启动爬虫
 func (s *Spider) SpiderRun(name string) {
 	if name == "" {
-
+		//不指定名称 则全部爬取
+		urls, err := s.ScanAll()
+		if err == nil {
+			for _, arg := range urls {
+				s.NormalRun(arg.Name)
+			}
+		}
+	} else {
+		s.NormalRun(name)
 	}
 }
 
 //通用爬虫启动
 func (s *Spider) NormalRun(name string) {
+	url_config, err := s.GetUrlconfig(name)
+	if err != nil {
+		fmt.Println("规则文件读取错误")
+		return
+	}
+	httpurl := url_config.Url
+	//域名自动补充 http
+	if !strings.HasPrefix(url_config.Url, "http://") && !strings.HasPrefix(url_config.Url, "https://") {
+		httpurl = "http://" + url_config.Url
+	}
+	url1 := strings.Split(httpurl, "//")[1]
+	url2 := strings.Split(url1, "/")[0]
 	// Instantiate default collector
 	c := colly.NewCollector(
 		// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
-		colly.AllowedDomains("hackerspaces.org", "wiki.hackerspaces.org"),
+		colly.AllowedDomains(url2),
 	)
+	//拷贝一份实例 用于访问分页
+	pageLink := c.Clone()
+	//拷贝一份实例 用于访问详情链接
+	detailLink := c.Clone()
+	//设置客户端，模拟浏览器访问
+	//c.UserAgent = "xy"
+	//允许重复访问
+	//c.AllowURLRevisit = true
 
+	// OnRequest 请求执行之前调用
+	// OnResponse 响应返回之后调用
+	// OnHTML 监听执行 selector
+	// OnXML 监听执行 selector
+	// OnHTMLDetach，取消监听，参数为 selector 字符串
+	// OnXMLDetach，取消监听，参数为 selector 字符串
+	// OnScraped，完成抓取后执行，完成所有工作后执行
+	// OnError，错误回调
 	// On every a element which has href attribute call callback
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
@@ -104,12 +141,31 @@ func (s *Spider) NormalRun(name string) {
 		// Only those links are visited which are in AllowedDomains
 		c.Visit(e.Request.AbsoluteURL(link))
 	})
+	//提取分页
+	pageLink.OnHTML("#kesfxqxq_A01_03_01", func(e *colly.HTMLElement) {
+		link := e.ChildAttr("a", "href")
+		//content := e.ChildText("a")
 
+		//fmt.Printf("detial link : %s \t", link)
+		//fmt.Printf("detial content : %s \t", coverGBKToUTF8(content))
+		//fmt.Println()
+
+		detailLink.Visit(link)
+	})
+	//提取详情
+	detailLink.OnHTML("#kesfxqxq_A01_03_01", func(e *colly.HTMLElement) {
+		//content := e.ChildText("a")
+
+		//fmt.Printf("detial link : %s \t", link)
+		//fmt.Printf("detial content : %s \t", coverGBKToUTF8(content))
+		//fmt.Println()
+
+	})
 	// Before making a request print "Visiting ..."
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
 	// Start scraping on https://hackerspaces.org
-	c.Visit("https://hackerspaces.org/")
+	c.Visit(httpurl)
 }
