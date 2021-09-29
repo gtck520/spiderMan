@@ -13,7 +13,7 @@ func JsonRead(filename string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	data := make([]byte, 100)
+	data := make([]byte, 1000)
 	n, err := fp.Read(data)
 	if err != nil {
 		log.Fatal(err)
