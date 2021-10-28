@@ -7,16 +7,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
-	"github.com/gocolly/colly"
 	"github.com/gtck520/spiderMan/helper"
 	"github.com/spf13/viper"
 )
 
 type Spider struct {
-	UrlList map[string]string
+	Co Colly
 }
 
 //url
@@ -27,16 +25,26 @@ type Urls struct {
 
 //定义每个url的配置结构
 type UrlConfig struct {
-	Name  string //配置名称
-	Url   string //url
-	Rules []Rule //规则
+	Name  string `json:"name"`  //配置名称
+	Url   string `json:"url"`   //url
+	Rules []Rule `json:"rules"` //规则
+	Out   int    `json:"out"`   //选择输出方式 1 csv 2 mysql
 }
 
 //规则结构
 type Rule struct {
-	Name       string //规则名 例如 标题
-	StartLable string //开始位置的标签 例如 <title>
-	EndLable   string //结束位置标签</title>
+	Type      int       `json:"type"`      //采集规则  1 html 2接口数据
+	Name      string    `json:"name"`      //规则名称
+	Field     string    `json:"field"`     //规则映射的字段名称
+	Match     string    `json:"match"`     //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
+	PageMatch string    `json:"pagematch"` //type=2  链接中的分页字段，type=1 分页的jquery selector规则
+	SubRule   []SubRule `json:"subrules"`  //下一级规则
+}
+type SubRule struct {
+	Type  int    `json:"type"`  //采集规则  1 html 2接口数据
+	Name  string `json:"name"`  //规则名称
+	Field string `json:"field"` //规则映射的字段名称
+	Match string `json:"match"` //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
 }
 
 //扫描全部规则文件
@@ -79,9 +87,6 @@ func (s *Spider) GetUrlconfig(name string) (UrlConfig, error) {
 	}
 
 }
-func (s *Spider) AddUrlrule(name string, rule Rule) {
-
-}
 
 //根据名称参数启动爬虫
 func (s *Spider) SpiderRun(name string) {
@@ -105,96 +110,12 @@ func (s *Spider) NormalRun(name string) {
 		fmt.Println("规则文件读取错误" + err.Error())
 		return
 	}
-	httpurl := url_config.Url
-	//域名自动补充 http
-	if !strings.HasPrefix(url_config.Url, "http://") && !strings.HasPrefix(url_config.Url, "https://") {
-		httpurl = "http://" + url_config.Url
+	s.Co.BuildC(url_config.Url)
+	for _, rule := range url_config.Rules {
+		s.Co.GetContent(rule)
+		for _, subrule := range rule.SubRule {
+			s.Co.GetDContent(subrule)
+		}
 	}
-
-	//httpurl = "https://feed.sina.com.cn/api/roll/get?pageid=121&lid=1356&num=20&versionNumber=1.2.4&page=2&encode=utf-8&callback=feedCardJsonpCallback&_=1632886493594"
-	url1 := strings.Split(httpurl, "//")[1]
-	url2 := strings.Split(url1, "/")[0]
-	// Instantiate default collector
-	c := colly.NewCollector(
-		// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
-		colly.AllowedDomains(url2),
-	)
-	//设置客户端，模拟浏览器访问
-	c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
-	//拷贝一份实例 用于访问分页
-	pageLink := c.Clone()
-	//拷贝一份实例 用于访问详情链接
-	detailLink := c.Clone()
-	//允许重复访问
-	//c.AllowURLRevisit = true
-
-	// OnRequest 请求执行之前调用
-	// OnResponse 响应返回之后调用
-	// OnHTML 监听执行 selector
-	// OnXML 监听执行 selector
-	// OnHTMLDetach，取消监听，参数为 selector 字符串
-	// OnXMLDetach，取消监听，参数为 selector 字符串
-	// OnScraped，完成抓取后执行，完成所有工作后执行
-	// OnError，错误回调
-	// On every a element which has href attribute call callback
-	c.OnResponse(func(r *colly.Response) {
-		str := string(r.Body)
-		//解析正则表达式，如果成功返回解释器
-		reg1 := regexp.MustCompile(`"url":"(.*?)"`)
-		if reg1 == nil { //解释失败，返回nil
-			fmt.Println("regexp err")
-			return
-		}
-		//detailLink.Visit(`https:\/\/news.sina.cn\/gn\/2021-09-29\/detail-iktzscyx6975697.d.html`)
-		//根据规则提取关键信息
-		result1 := reg1.FindAllStringSubmatch(str, -1)
-		if len(result1) > 0 {
-
-			detailLink.AllowedDomains = []string{"news.sina.com.cn"}
-			for _, v := range result1 {
-				fmt.Printf("Link found: %s\n", v[1])
-				childurl := strings.Replace(v[1], "\\", "", -1)
-				err := detailLink.Visit(childurl)
-				if err != nil {
-					fmt.Println(childurl+" visit err:", err.Error())
-				}
-			}
-		}
-
-		//c.Visit(result1[1][1])
-	})
-	c.OnHTML("h2[suda-uatrack] a", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
-		// Print link
-		fmt.Printf("Link found: %q -> %s\n", e.Text, link)
-		// Visit link found on page
-		// Only those links are visited which are in AllowedDomains
-		c.Visit(e.Request.AbsoluteURL(link))
-	})
-	//提取分页
-	pageLink.OnHTML("#kesfxqxq_A01_03_01", func(e *colly.HTMLElement) {
-		link := e.ChildAttr("a", "href")
-		//content := e.ChildText("a")
-
-		//fmt.Printf("detial link : %s \t", link)
-		//fmt.Printf("detial content : %s \t", coverGBKToUTF8(content))
-		//fmt.Println()
-
-		detailLink.Visit(link)
-	})
-	//提取详情
-	detailLink.OnHTML(".main-title", func(e *colly.HTMLElement) {
-		content := e.Text
-		//fmt.Printf("detial link : %s \t", link)
-		fmt.Printf("detial title : %s \t", content)
-		//fmt.Println()
-
-	})
-	// Before making a request print "Visiting ..."
-	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL.String())
-	})
-
-	// Start scraping on https://hackerspaces.org
-	c.Visit(httpurl)
+	s.Co.C.Visit(url_config.Url)
 }

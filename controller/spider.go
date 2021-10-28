@@ -30,6 +30,21 @@ func (s *Spider) Add(cmd *cobra.Command, args []string, globals ...string) {
 		jsonconfig := service.UrlConfig{}
 		jsonconfig.Name = names[k]
 		jsonconfig.Url = arg
+		//子页面规则
+		subrule := service.SubRule{}
+		subrule.Field = "title"
+		subrule.Match = ".main-title"
+		subrule.Type = 1
+		subrule.Name = "标题"
+		//列表页面规则
+		rule := service.Rule{}
+		rule.Field = "list"
+		rule.Match = `"url":"(.*?)"`
+		rule.Name = "列表"
+		rule.Type = 2
+		rule.SubRule = append(rule.SubRule, subrule)
+
+		jsonconfig.Rules = append(jsonconfig.Rules, rule)
 		filename := names[k] + ".json"
 		content, _ := json.Marshal(jsonconfig)
 		helper.JsonWrite(content, configpath.(string)+filename)
