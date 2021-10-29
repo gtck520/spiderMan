@@ -50,6 +50,7 @@ func (s *Spider) Add(cmd *cobra.Command, args []string, globals ...string) {
 		pagerule.Page = 0
 		pagerule.Match = ".abc"
 		rule.PageRule = pagerule
+		rule.SubMatch = "body"
 		jsonconfig.Rules = append(jsonconfig.Rules, rule)
 		filename := names[k] + ".json"
 		content, _ := json.Marshal(jsonconfig)

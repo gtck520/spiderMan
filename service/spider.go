@@ -38,7 +38,8 @@ type Rule struct {
 	Field    string    `json:"field"`    //规则映射的字段名称
 	Match    string    `json:"match"`    //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
 	PageRule PageRule  `json:"pagerule"` //分页规则
-	SubRule  []SubRule `json:"subrules"` //下一级规则
+	SubMatch string    `json:"submatch"` //内容规则 jquery selector
+	SubRule  []SubRule `json:"subrules"` //内容详细内容
 }
 type SubRule struct {
 	Type  int    `json:"type"`  //采集规则  1 html 2接口数据
@@ -121,10 +122,8 @@ func (s *Spider) NormalRun(name string) {
 	s.Co.BuildC(url_config.Url)
 	for _, rule := range url_config.Rules {
 		s.Co.GetContent(rule)
+		s.Co.GetDContent(rule, rule.SubRule,url_config.Out)
 		s.Co.GetPageContent(rule.PageRule)
-		for _, subrule := range rule.SubRule {
-			s.Co.GetDContent(subrule)
-		}
 	}
 	s.Co.C.Visit(url_config.Url)
 }

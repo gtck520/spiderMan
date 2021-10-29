@@ -7,12 +7,14 @@ import (
 	"strings"
 
 	"github.com/gocolly/colly"
+	"github.com/gtck520/spiderMan/helper"
 )
 
 type Colly struct {
-	C       *colly.Collector
-	Cdetail *colly.Collector
-	num     int //采集次数
+	C        *colly.Collector
+	Cdetail  *colly.Collector
+	num      int //采集次数
+	WriteNum int //写入次数
 }
 
 //初始化建立colly实例
@@ -38,6 +40,7 @@ func (co *Colly) BuildC(Url string) {
 	co.Cdetail = c.Clone()
 	co.C = c
 	co.num = 0
+	co.WriteNum = 0
 }
 
 //根据规则抓取数据
@@ -133,37 +136,41 @@ func (co *Colly) GetPageContent(Rule PageRule) {
 }
 
 //根据规则抓取数据
-func (co *Colly) GetDContent(Rule SubRule) {
-	// OnRequest 请求执行之前调用
-	// OnResponse 响应返回之后调用
-	// OnHTML 监听执行 selector
-	// OnXML 监听执行 selector
-	// OnHTMLDetach，取消监听，参数为 selector 字符串
-	// OnXMLDetach，取消监听，参数为 selector 字符串
-	// OnScraped，完成抓取后执行，完成所有工作后执行
-	// OnError，错误回调
-	// On every a element which has href attribute call callback
-	if Rule.Type == 2 {
-		co.Cdetail.OnResponse(func(r *colly.Response) {
-			str := string(r.Body)
-			//解析正则表达式，如果成功返回解释器
-			reg1 := regexp.MustCompile(Rule.Match)
-			if reg1 == nil { //解释失败，返回nil
-				fmt.Println("regexp err")
-				return
-			}
-			//detailLink.Visit(`https:\/\/news.sina.cn\/gn\/2021-09-29\/detail-iktzscyx6975697.d.html`)
-			//根据规则提取关键信息
-			result1 := reg1.FindAllStringSubmatch(str, -1)
-			fmt.Printf("content found: %s\n", result1)
+func (co *Colly) GetDContent(Rule Rule, SubRule []SubRule, Output int) {
+	co.Cdetail.OnHTML(Rule.SubMatch, func(e *colly.HTMLElement) {
+		for _, subrule := range SubRule {
+			var content string
+			if subrule.Type == 2 {
+				str := string(e.Text)
+				//解析正则表达式，如果成功返回解释器
+				reg1 := regexp.MustCompile(subrule.Match)
+				if reg1 == nil { //解释失败，返回nil
+					fmt.Println("regexp err")
+					return
+				}
+				//detailLink.Visit(`https:\/\/news.sina.cn\/gn\/2021-09-29\/detail-iktzscyx6975697.d.html`)
+				//根据规则提取关键信息
+				result1 := reg1.FindAllStringSubmatch(str, -1)
+				content = result1[0][1]
+				fmt.Printf("content found: %s\n", result1)
 
-		})
-	} else {
-		co.Cdetail.OnHTML(Rule.Match, func(e *colly.HTMLElement) {
-			content := e.Text
-			//fmt.Printf("detial link : %s \t", link)
-			fmt.Printf("detial %s : %s \t", Rule.Name, content)
-		})
-	}
+			} else {
+				content = e.ChildText(subrule.Match)
+				fmt.Printf("detial %s : %s \t", subrule.Name, content)
+			}
+			detaildata := make(map[string]string)
+			subdata := make(map[string]map[string]string)
+			detaildata[subrule.Field] = content
+			subdata[e.Request.URL.String()] = detaildata
+			if Output == 1 {
+				if helper.CsvWrite(subdata, co.WriteNum) {
+					co.WriteNum++
+				}
+			} else {
+
+			}
+
+		}
+	})
 
 }

@@ -25,6 +25,7 @@ import (
 )
 
 var cfgFile string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "spider",
@@ -75,6 +76,7 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".spider")
 		viper.SetDefault("SiteconfigDir", "./siteconfig/")
+		viper.SetDefault("OutputDir", "./output/")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
