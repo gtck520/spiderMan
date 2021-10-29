@@ -115,6 +115,7 @@ func (s *Spider) SpiderRun(name string) {
 //通用爬虫启动
 func (s *Spider) NormalRun(name string) {
 	url_config, err := s.GetUrlconfig(name)
+
 	if err != nil {
 		fmt.Println("规则文件读取错误" + err.Error())
 		return
@@ -122,8 +123,16 @@ func (s *Spider) NormalRun(name string) {
 	s.Co.BuildC(url_config.Url)
 	for _, rule := range url_config.Rules {
 		s.Co.GetContent(rule)
-		s.Co.GetDContent(rule, rule.SubRule,url_config.Out)
+		s.Co.GetDContent(name, rule, rule.SubRule)
 		s.Co.GetPageContent(rule.PageRule)
 	}
 	s.Co.C.Visit(url_config.Url)
+
+	csvwriter := helper.Csv{}
+	//写入存储
+	select {
+	case i := <-s.Co.WriteChannle:
+		fmt.Printf("receive from c: %d\n", i)
+		csvwriter.CsvWrite(name,i, s.Co.WriteNum)
+	}
 }

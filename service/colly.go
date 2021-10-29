@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/gocolly/colly"
-	"github.com/gtck520/spiderMan/helper"
 )
 
 type Colly struct {
-	C        *colly.Collector
-	Cdetail  *colly.Collector
-	num      int //采集次数
-	WriteNum int //写入次数
+	C            *colly.Collector
+	Cdetail      *colly.Collector
+	num          int //采集次数
+	WriteNum     int //写入次数
+	WriteChannle chan map[string]string
 }
 
 //初始化建立colly实例
@@ -41,6 +41,7 @@ func (co *Colly) BuildC(Url string) {
 	co.C = c
 	co.num = 0
 	co.WriteNum = 0
+	co.WriteChannle = make(chan map[string]string)
 }
 
 //根据规则抓取数据
@@ -136,8 +137,11 @@ func (co *Colly) GetPageContent(Rule PageRule) {
 }
 
 //根据规则抓取数据
-func (co *Colly) GetDContent(Rule Rule, SubRule []SubRule, Output int) {
+func (co *Colly) GetDContent(Name string, Rule Rule, SubRule []SubRule) {
+	detaildata := make(map[string]string)
+
 	co.Cdetail.OnHTML(Rule.SubMatch, func(e *colly.HTMLElement) {
+		detaildata["link"] = e.Request.URL.String()
 		for _, subrule := range SubRule {
 			var content string
 			if subrule.Type == 2 {
@@ -158,17 +162,11 @@ func (co *Colly) GetDContent(Rule Rule, SubRule []SubRule, Output int) {
 				content = e.ChildText(subrule.Match)
 				fmt.Printf("detial %s : %s \t", subrule.Name, content)
 			}
-			detaildata := make(map[string]string)
-			subdata := make(map[string]map[string]string)
-			detaildata[subrule.Field] = content
-			subdata[e.Request.URL.String()] = detaildata
-			if Output == 1 {
-				if helper.CsvWrite(subdata, co.WriteNum) {
-					co.WriteNum++
-				}
-			} else {
 
-			}
+			detaildata[subrule.Field] = content
+			go func() {
+				co.WriteChannle <- detaildata
+			}()
 
 		}
 	})
