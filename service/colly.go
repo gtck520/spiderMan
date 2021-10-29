@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
@@ -11,7 +12,7 @@ import (
 type Colly struct {
 	C       *colly.Collector
 	Cdetail *colly.Collector
-	Cpage   *colly.Collector
+	num     int //采集次数
 }
 
 //初始化建立colly实例
@@ -33,11 +34,10 @@ func (co *Colly) BuildC(Url string) {
 	)
 	//设置客户端，模拟浏览器访问
 	c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
-	//拷贝一份实例 用于访问分页
-	co.Cpage = c.Clone()
 	//拷贝一份实例 用于访问详情链接
 	co.Cdetail = c.Clone()
 	co.C = c
+	co.num = 0
 }
 
 //根据规则抓取数据
@@ -97,6 +97,39 @@ func (co *Colly) GetContent(Rule Rule) {
 		})
 	}
 
+}
+
+//根据规则提取分页数据
+func (co *Colly) GetPageContent(Rule PageRule) {
+	if Rule.Type == 1 {
+		co.C.OnHTML(Rule.Match, func(e *colly.HTMLElement) {
+			link := e.Attr("href")
+			fmt.Printf("pageLink found: %q -> %s\n", e.Text, link)
+			page, _ := strconv.Atoi(e.Text)
+			if Rule.Page > 0 {
+				if Rule.Page == page {
+					co.C.Visit(e.Request.AbsoluteURL(link))
+				}
+			} else {
+				if co.num < Rule.Num {
+					co.C.Visit(e.Request.AbsoluteURL(link))
+					co.num++
+				}
+			}
+		})
+	} else if Rule.Type == 2 {
+		if Rule.Page > 0 {
+			link := strings.Replace(Rule.Match, "{page}", strconv.Itoa(Rule.Page), -1)
+			co.C.Visit(link)
+		} else {
+			for i := 1; i < Rule.Num; i++ {
+				link := strings.Replace(Rule.Match, "{page}", strconv.Itoa(i), -1)
+				co.C.Visit(link)
+			}
+		}
+	} else {
+		return
+	}
 }
 
 //根据规则抓取数据

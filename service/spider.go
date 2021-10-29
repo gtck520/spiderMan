@@ -33,18 +33,26 @@ type UrlConfig struct {
 
 //规则结构
 type Rule struct {
-	Type      int       `json:"type"`      //采集规则  1 html 2接口数据
-	Name      string    `json:"name"`      //规则名称
-	Field     string    `json:"field"`     //规则映射的字段名称
-	Match     string    `json:"match"`     //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
-	PageMatch string    `json:"pagematch"` //type=2  链接中的分页字段，type=1 分页的jquery selector规则
-	SubRule   []SubRule `json:"subrules"`  //下一级规则
+	Type     int       `json:"type"`     //采集规则  1 html 2接口数据
+	Name     string    `json:"name"`     //规则名称
+	Field    string    `json:"field"`    //规则映射的字段名称
+	Match    string    `json:"match"`    //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
+	PageRule PageRule  `json:"pagerule"` //分页规则
+	SubRule  []SubRule `json:"subrules"` //下一级规则
 }
 type SubRule struct {
 	Type  int    `json:"type"`  //采集规则  1 html 2接口数据
 	Name  string `json:"name"`  //规则名称
 	Field string `json:"field"` //规则映射的字段名称
 	Match string `json:"match"` //type=2  则为正则表达式前缀，type=1 html 则为jquery selector规则
+}
+
+//分页规则
+type PageRule struct {
+	Type  int    `json:"type"`  //采集规则 0 不采集分页  1 html 2接口数据
+	Page  int    `json:"page"`  //采集第几页 0为采集全部
+	Num   int    `json:"num"`   //总共采集几页 0为无限制
+	Match string `json:"match"` //分页提取规则 type为1：则输入jquery提取分页按钮  2：输入分页连接其中 分页处用{page}替换
 }
 
 //扫描全部规则文件
@@ -113,6 +121,7 @@ func (s *Spider) NormalRun(name string) {
 	s.Co.BuildC(url_config.Url)
 	for _, rule := range url_config.Rules {
 		s.Co.GetContent(rule)
+		s.Co.GetPageContent(rule.PageRule)
 		for _, subrule := range rule.SubRule {
 			s.Co.GetDContent(subrule)
 		}
