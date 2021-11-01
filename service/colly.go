@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"html"
 	"regexp"
 	"strconv"
 	"strings"
@@ -138,9 +139,8 @@ func (co *Colly) GetPageContent(Rule PageRule) {
 
 //根据规则抓取数据
 func (co *Colly) GetDContent(Name string, Rule Rule, SubRule []SubRule) {
-	detaildata := make(map[string]string)
-
 	co.Cdetail.OnHTML(Rule.SubMatch, func(e *colly.HTMLElement) {
+		detaildata := make(map[string]string)
 		detaildata["link"] = e.Request.URL.String()
 		for _, subrule := range SubRule {
 			var content string
@@ -156,19 +156,18 @@ func (co *Colly) GetDContent(Name string, Rule Rule, SubRule []SubRule) {
 				//根据规则提取关键信息
 				result1 := reg1.FindAllStringSubmatch(str, -1)
 				content = result1[0][1]
-				fmt.Printf("content found: %s\n", result1)
+				//fmt.Printf("content found: %s\n", result1)
 
 			} else {
 				content = e.ChildText(subrule.Match)
-				fmt.Printf("detial %s : %s \t", subrule.Name, content)
+				//fmt.Printf("detial %s : %s \t", subrule.Name, content)
 			}
 
-			detaildata[subrule.Field] = content
-			go func() {
-				co.WriteChannle <- detaildata
-			}()
-
+			detaildata[subrule.Field] = html.EscapeString(content)
 		}
+		go func() {
+			co.WriteChannle <- detaildata
+		}()
 	})
 
 }

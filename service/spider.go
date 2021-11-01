@@ -130,9 +130,16 @@ func (s *Spider) NormalRun(name string) {
 
 	csvwriter := helper.Csv{}
 	//写入存储
-	select {
-	case i := <-s.Co.WriteChannle:
-		fmt.Printf("receive from c: %d\n", i)
-		csvwriter.CsvWrite(name,i, s.Co.WriteNum)
+	for {
+		select {
+		case i := <-s.Co.WriteChannle:
+			//fmt.Printf("读取：%s \n", i)
+			if csvwriter.CsvWrite(name, i, s.Co.WriteNum) {
+				s.Co.WriteNum++
+				fmt.Printf("写入数：%d \n", s.Co.WriteNum)
+			}
+			// default:
+			// 	fmt.Println("数据接收完毕")
+		}
 	}
 }
