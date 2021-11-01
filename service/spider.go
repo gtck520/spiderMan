@@ -132,14 +132,20 @@ func (s *Spider) NormalRun(name string) {
 	//写入存储
 	for {
 		select {
-		case i := <-s.Co.WriteChannle:
+		case i, ok := <-s.Co.WriteChannle:
+			if !ok {
+				//通道关闭 则退出不阻塞
+				return
+			}
 			//fmt.Printf("读取：%s \n", i)
 			if csvwriter.CsvWrite(name, i, s.Co.WriteNum) {
 				s.Co.WriteNum++
 				fmt.Printf("写入数：%d \n", s.Co.WriteNum)
 			}
-			// default:
-			// 	fmt.Println("数据接收完毕")
+		default:
+			fmt.Println("数据接收完毕")
+			//没有数据也退出不阻塞
+			return
 		}
 	}
 }
