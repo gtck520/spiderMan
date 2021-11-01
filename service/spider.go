@@ -87,7 +87,7 @@ func (s *Spider) GetUrlconfig(name string) (UrlConfig, error) {
 	if ok {
 		config_str := helper.JsonRead(filename)
 
-		fmt.Println("文件内容:" + string(config_str))
+		//fmt.Println("文件内容:" + string(config_str))
 		err := json.Unmarshal(config_str, &url_config)
 		return url_config, err
 	} else {

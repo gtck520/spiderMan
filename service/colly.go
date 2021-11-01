@@ -127,7 +127,10 @@ func (co *Colly) GetPageContent(Rule PageRule) {
 			link := strings.Replace(Rule.Match, "{page}", strconv.Itoa(Rule.Page), -1)
 			co.C.Visit(link)
 		} else {
-			for i := 1; i < Rule.Num; i++ {
+			if Rule.Num == 0 {
+				Rule.Num = 1000
+			}
+			for i := 1; i <= Rule.Num; i++ {
 				link := strings.Replace(Rule.Match, "{page}", strconv.Itoa(i), -1)
 				co.C.Visit(link)
 			}
