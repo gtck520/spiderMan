@@ -1,5 +1,5 @@
 # spiderMan
-go学习实战cli程序之--爬虫小工具，使用colly库
+go学习实战cli程序之--爬虫小工具。使用cobra构建cli应用，使用colly库爬取数据
 # 使用方法
 下载代码之后 go build -o spider.exe main.go（windows）<br>
 然后执行 spider add  url -name NAME 生成需要爬取网站的配置文件<br>
