@@ -25,10 +25,11 @@ type Urls struct {
 
 //定义每个url的配置结构
 type UrlConfig struct {
-	Name  string `json:"name"`  //配置名称
-	Url   string `json:"url"`   //url
-	Rules []Rule `json:"rules"` //规则
-	Out   int    `json:"out"`   //选择输出方式 1 csv 2 mysql
+	Name   string `json:"name"`   //配置名称
+	Tbname string `json:"tbname"` //对应表名
+	Url    string `json:"url"`    //url
+	Rules  []Rule `json:"rules"`  //规则
+	Out    int    `json:"out"`    //选择输出方式 1 csv 2 mysql
 }
 
 //规则结构
@@ -127,8 +128,15 @@ func (s *Spider) NormalRun(name string) {
 		s.Co.GetPageContent(rule.PageRule)
 	}
 	s.Co.C.Visit(url_config.Url)
-
 	csvwriter := helper.Csv{}
+	mysqlconn := helper.GetMysqlInstance()
+	if url_config.Out == 2 {
+		fields := make(map[string]string)
+		fields["link"] = "varchar(100) not null default ''"
+		fields["title"] = "varchar(100) not null default ''"
+		fields["content"] = "text not null default ''"
+		mysqlconn.CreateTable(url_config.Tbname, fields)
+	}
 	//写入存储
 	for {
 		select {
@@ -138,9 +146,16 @@ func (s *Spider) NormalRun(name string) {
 				return
 			}
 			//fmt.Printf("读取：%s \n", i)
-			if csvwriter.CsvWrite(name, i, s.Co.WriteNum) {
-				s.Co.WriteNum++
-				fmt.Printf("写入数：%d \n", s.Co.WriteNum)
+			if url_config.Out == 1 {
+				if csvwriter.CsvWrite(name, i, s.Co.WriteNum) {
+					s.Co.WriteNum++
+					fmt.Printf("写入数：%d \n", s.Co.WriteNum)
+				}
+			} else if url_config.Out == 2 {
+				if mysqlconn.MysqlWrite(url_config.Tbname, i) {
+					s.Co.WriteNum++
+					fmt.Printf("写入数：%d \n", s.Co.WriteNum)
+				}
 			}
 		default:
 			fmt.Println("数据接收完毕")

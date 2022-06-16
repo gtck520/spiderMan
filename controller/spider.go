@@ -29,6 +29,7 @@ func (s *Spider) Add(cmd *cobra.Command, args []string, globals ...string) {
 	for k, arg := range args {
 		jsonconfig := service.UrlConfig{}
 		jsonconfig.Name = names[k]
+		jsonconfig.Tbname = names[k]
 		jsonconfig.Url = arg
 		//初始化子页面规则
 		subrule := service.SubRule{}

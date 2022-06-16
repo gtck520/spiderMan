@@ -77,6 +77,13 @@ func initConfig() {
 		viper.SetConfigName(".spider")
 		viper.SetDefault("SiteconfigDir", "./siteconfig/")
 		viper.SetDefault("OutputDir", "./output/")
+
+		viper.SetDefault("database", "mysql")
+		viper.SetDefault("dbhost", "127.0.0.1")
+		viper.SetDefault("dbport", "3306")
+		viper.SetDefault("dbuser", "root")
+		viper.SetDefault("dbpwd", "root")
+		viper.SetDefault("dbname", "douyintool")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
